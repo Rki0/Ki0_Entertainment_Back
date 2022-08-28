@@ -126,13 +126,34 @@ const { Like } = require("./model/Like");
 app.post("/api/users/like", (req, res) => {
   const newLike = new Like(req.body);
 
-  newLike.save((err, likeInfo) => {
-    if (err) return res.json({ addLikeSuccess: false, error: err });
+  // 만약 같은 아티스트를 추가한다면
+  Like.findOne({ name: req.body.name, email: req.body.email }, (err, like) => {
+    // 추가하면 안되므로 데이터와 함께 return
+    if (like) {
+      return res.json({
+        addLikeSuccess: false,
+        message: "이미 관심 설정된 아티스트입니다.",
+        error: err,
+      });
+    }
 
-    res.status(200).json({
-      addLikeSuccess: true,
+    // 그게 아니라면 데이터 저장 후 성공 메세지 return
+    newLike.save((err, likeInfo) => {
+      if (err) return res.json({ addLikeSuccess: false, error: err });
+
+      return res.status(200).json({
+        addLikeSuccess: true,
+      });
     });
   });
+
+  // newLike.save((err, likeInfo) => {
+  //   if (err) return res.json({ addLikeSuccess: false, error: err });
+
+  //   res.status(200).json({
+  //     addLikeSuccess: true,
+  //   });
+  // });
 });
 
 // 관심 아티스트 불러오기 라우터

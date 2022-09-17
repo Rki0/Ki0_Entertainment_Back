@@ -8,6 +8,8 @@ app.use(
   cors({ origin: "https://ki0entertainment.netlify.app", credentials: true })
 );
 
+// app.use(cors({ origin: "http://localhost:3000/" }));
+
 const { User } = require("./model/User");
 
 const bodyParser = require("body-parser");
@@ -196,7 +198,7 @@ app.get("/", (req, res) => {
     req.session.num = req.session.num + 1;
   }
 
-  res.send("Hello World! 안녕하세요! 곤니찌와! Hi!");
+  res.send("Hello World! 네트리파이 성공했어!");
 });
 
 app.listen(port, () => {

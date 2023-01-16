@@ -8,9 +8,9 @@ app.use(
   cors({ origin: "https://ki0entertainment.netlify.app", credentials: true })
 );
 
-// app.use(cors({ origin: "http://localhost:3000/" }));
+// app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
-const { User } = require("./model/User");
+const { User } = require("./models/User");
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -39,6 +39,7 @@ app.use(
     cookie: {
       // expires: 60 * 60 * 24,
       maxAge: 3.6e6 * 24,
+      secure: false, // https 에서만 가져오도록 할 것인가?
     },
   })
 );
@@ -96,6 +97,16 @@ app.post("/api/users/login", (req, res) => {
       // 모델 만들 때 role은 디폴트 값을 0으로 설정되게 했으므로, 그걸 가져와서 사용
       req.session.role = user.role;
 
+      // 추가 사항. 세션 정보를 저장하는 것. auth 미들웨어에서 req.session에 여기서 입력한 유저 데이터가 사라지는 현상을 해결하기 위한 시도.
+      req.session.save((err) => {
+        if (err) {
+          return res.json({
+            sessionGenerate: false,
+            message: "세션 생성 실패",
+          });
+        }
+      });
+
       return res.status(200).json({
         loginSuccess: true,
         email: req.session.email,
@@ -105,16 +116,37 @@ app.post("/api/users/login", (req, res) => {
 });
 
 // 인증 라우터
-const { auth } = require("./middleware/auth");
+const { auth } = require("./middleware/check-auth");
 
-app.get("/api/users/auth", auth, (req, res) => {
-  res.status(200).json({
-    isAdmin: req.user.role === 0 ? false : true,
-    isAuth: true,
-    email: req.session.email,
-    authSuccess: true,
-  });
-});
+// auth에 req.session을 전달하기 힘드니까...그냥 post로 바꿔서 리덕스에 있는 loginSuccess를 전달해줄까..?
+// app.get("/api/users/auth", auth, (req, res) => {
+//   res.status(200).json({
+//     isAdmin: req.user.role === 0 ? false : true,
+//     isAuth: true,
+//     email: req.session.email,
+//     authSuccess: true,
+//   });
+// });
+
+app.post(
+  // post로 바꾸고, 리덕스에서 loginSuccess 데이터를 전달받자
+  "/api/users/auth",
+  (req, res, next) => {
+    // req에서 받아온 로그인 여부가 true이면 true, 비로그인이면 false를 할당해보자.
+    req.session.logined = req.body.loginSuccess ? true : false;
+
+    next(); // auth 미들웨어로 이동. 과연 session은 어떻게 될까?
+  },
+  auth,
+  (req, res) => {
+    return res.status(200).json({
+      isAdmin: req.user.role === 0 ? false : true,
+      isAuth: true,
+      email: req.session.email,
+      authSuccess: true,
+    });
+  }
+);
 
 // 로그아웃 라우터
 app.get("/api/users/logout", (req, res) => {
@@ -129,7 +161,7 @@ app.get("/api/users/logout", (req, res) => {
 });
 
 // 관심 아티스트 추가 라우터
-const { Like } = require("./model/Like");
+const { Like } = require("./models/Like");
 
 app.post("/api/users/like", (req, res) => {
   const newLike = new Like(req.body);

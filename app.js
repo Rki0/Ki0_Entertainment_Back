@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8080;
 
 const likeRoutes = require("./routes/like-routes");
 const usersRoutes = require("./routes/user-routes");
@@ -16,12 +16,16 @@ app.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-app.listen(port, () => {
-  console.log(`listening on port ${port}`);
-});
+// fly.io setting
+app.listen(port, "0.0.0.0");
+console.log(`listening on port ${port}`);
 
+// fly.io secrets setting
 mongoose
-  .connect(config.mongoURI)
+  // .connect(config.mongoURI)
+  .connect(
+    `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.p7xg4td.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
+  )
   .then(() => {
     console.log("Connect Success!");
   })
@@ -33,7 +37,11 @@ mongoose
 app.use((req, res, next) => {
   // 두 번째 인자는 허용 도메인
   // res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  // res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://ki0entertainment.netlify.app"
+  );
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"

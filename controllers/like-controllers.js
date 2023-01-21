@@ -7,6 +7,25 @@ const User = require("../models/User");
 const addLike = async (req, res, next) => {
   const { src, name } = req.body;
 
+  let existingLike;
+
+  try {
+    existingLike = await Like.findOne({
+      src: src,
+      creator: req.userData.userId,
+    });
+  } catch (err) {
+    const error = new HttpError("compare failed..", 500);
+
+    return next(error);
+  }
+
+  if (existingLike) {
+    const error = new HttpError("You already add this artist!", 402);
+
+    return next(error);
+  }
+
   const createdLike = new Like({
     src,
     name,

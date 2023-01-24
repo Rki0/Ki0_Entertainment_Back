@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -146,5 +147,80 @@ const login = async (req, res, next) => {
   });
 };
 
+const withdraw = async (req, res, next) => {
+  const { password } = req.body;
+
+  let existingUser;
+  try {
+    existingUser = await User.findById(req.userData.userId).populate("likes");
+  } catch (err) {
+    const error = new HttpError(
+      "Something inputs wrong. Please try again.",
+      422
+    );
+
+    return next(error);
+  }
+
+  if (!existingUser) {
+    const error = new HttpError("Cannot find user. Please try again.", 500);
+
+    return next(error);
+  }
+
+  if (existingUser.id !== req.userData.userId) {
+    const error = new HttpError("You are not allowed to delete info.", 401);
+
+    return next(error);
+  }
+
+  let isValidPassword = false;
+
+  try {
+    isValidPassword = await bcrypt.compare(password, existingUser.password);
+  } catch (err) {
+    const error = new HttpError(
+      "Could not find you, please check your credentials and try again.",
+      500
+    );
+
+    return next(error);
+  }
+
+  if (!isValidPassword) {
+    const error = new HttpError(
+      "Invalid credentials, could not find you.",
+      401
+    );
+
+    return next(error);
+  }
+
+  try {
+    existingUser.likes.forEach((like) => {
+      like.remove();
+    });
+  } catch (err) {
+    const error = new HttpError(
+      "Something went wrong, could not delete all of you.",
+      500
+    );
+
+    return next(error);
+  }
+
+  try {
+    await existingUser.remove();
+  } catch (err) {
+    const error = new HttpError(
+      "Cannot delete your info. Please try again.",
+      500
+    );
+
+    return next(error);
+  }
+};
+
 exports.signup = signup;
 exports.login = login;
+exports.withdraw = withdraw;

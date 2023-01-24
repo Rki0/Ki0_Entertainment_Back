@@ -21,6 +21,6 @@ router.use(checkAuth);
 
 router.post("/withdraw", userControllers.withdraw);
 
-router.post("/changePswd/:uid", userControllers.changePswd);
+router.post("/changePswd", userControllers.changePswd);
 
 module.exports = router;

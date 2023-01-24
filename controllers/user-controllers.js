@@ -219,8 +219,96 @@ const withdraw = async (req, res, next) => {
 
     return next(error);
   }
+
+  res.status(201).json({ withdrawSuccess: true });
+};
+
+const changePswd = async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  let existingUser;
+  try {
+    existingUser = await User.findById(req.userData.userId);
+  } catch (err) {
+    const error = new HttpError(
+      "Something inputs wrong. Please try again.",
+      422
+    );
+
+    return next(error);
+  }
+
+  if (!existingUser) {
+    const error = new HttpError("Cannot find user. Please try again.", 500);
+
+    return next(error);
+  }
+
+  if (existingUser.id !== req.userData.userId) {
+    const error = new HttpError("You are not allowed to change info.", 401);
+
+    return next(error);
+  }
+
+  let isValidPassword = false;
+
+  try {
+    isValidPassword = await bcrypt.compare(
+      currentPassword,
+      existingUser.password
+    );
+  } catch (err) {
+    const error = new HttpError(
+      "Could not find you, please check your credentials and try again.",
+      500
+    );
+
+    return next(error);
+  }
+
+  if (!isValidPassword) {
+    const error = new HttpError(
+      "Invalid credentials, could not find you.",
+      401
+    );
+
+    return next(error);
+  }
+
+  if (newPassword === currentPassword) {
+    const error = new HttpError("Inputed passwords aren't different.", 401);
+
+    return next(error);
+  }
+
+  let hashedPassword;
+
+  try {
+    hashedPassword = await bcrypt.hash(newPassword, 12);
+  } catch (err) {
+    const error = new HttpError("Encrypt failed, please try again.", 500);
+
+    return next(error);
+  }
+
+  try {
+    await User.updateOne(
+      { _id: existingUser._id },
+      { password: hashedPassword }
+    );
+  } catch (err) {
+    const error = new HttpError(
+      "Update user data failed. Please try again.",
+      500
+    );
+
+    return next(error);
+  }
+
+  res.status(201).json({ changeSuccess: true });
 };
 
 exports.signup = signup;
 exports.login = login;
 exports.withdraw = withdraw;
+exports.changePswd = changePswd;

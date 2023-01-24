@@ -19,6 +19,8 @@ router.post("/login", userControllers.login);
 
 router.use(checkAuth);
 
-router.post("/withdraw/:uid", userControllers.withdraw);
+router.post("/withdraw", userControllers.withdraw);
+
+router.post("/changePswd/:uid", userControllers.changePswd);
 
 module.exports = router;
